@@ -1,92 +1,138 @@
 import streamlit as st
 import google.generativeai as genai
-import fitz
+import fitz  # PyMuPDF
 import pandas as pd
 import json
+import re
 import os
 from dotenv import load_dotenv
 
-# 1. Setup & Configuration
+# --- CONFIGURATION ---
 load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-st.set_page_config(page_title="Nutrabay AI Resume Screener", layout="wide")
+st.set_page_config(page_title="Nutrabay Hybrid ATS System", layout="wide")
 
-# 2. Helper Functions
-def extract_text_from_pdf(file):
-    text = ""
-    try:
-        file.seek(0)
-        # Read the file as a byte stream
-        pdf_bytes = file.read()
-        # Open the PDF with PyMuPDF
-        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-        for page in doc:
-            text += page.get_text() + "\n"
-    except Exception as e:
-        st.error(f"Error reading PDF {file.name}: {e}")
-    return text
-
-def analyze_resume(jd_text, resume_text):
-    model = genai.GenerativeModel('gemini-2.5-flash')
+# --- ENGINE 1: TRADITIONAL ATS (DETERMINISTIC) ---
+def traditional_ats_match(jd_text, resume_text):
+    jd_words = set(re.findall(r'\b[a-zA-Z0-9.-]+\b', jd_text.lower()))
+    resume_words = set(re.findall(r'\b[a-zA-Z0-9.-]+\b', resume_text.lower()))
     
+    skill_bank = {'react', 'node', 'express', 'mongodb', 'python', 'sql', 'seo', 'marketing', 'java', 'next.js', 'vercel', 'aws', 'api'}
+    
+    jd_skills = jd_words.intersection(skill_bank)
+    if not jd_skills:
+        return 0, [], []
+        
+    matched_skills = jd_skills.intersection(resume_words)
+    missing_skills = jd_skills - resume_words
+    
+    score = int((len(matched_skills) / len(jd_skills)) * 100)
+    return score, list(matched_skills), list(missing_skills)
+
+# --- ENGINE 2: STANDARD AI RECRUITER (TEXT-BASED) ---
+def ai_contextual_analysis(jd_text, resume_text):
+    model = genai.GenerativeModel('gemini-2.5-flash')
     prompt = f"""
-    You are an expert HR Recruitment Tool. 
-    Analyze the Resume against the Job Description (JD).
+    You are an expert HR Recruiter. Analyze this Resume text against the Job Description.
+    Focus on CONTEXT. Does their experience level and actual work match the JD?
     
     JD: {jd_text}
     Resume: {resume_text}
     
     Return ONLY a JSON object with these exact keys:
     "Candidate Name": "Extract from resume",
-    "Score": (0-100 integer),
+    "AI Score": (0-100 integer representing contextual fit),
     "Strengths": ["point 1", "point 2"],
     "Gaps": ["point 1", "point 2"],
     "Recommendation": "Strong Fit" or "Moderate Fit" or "Not Fit"
     """
-    
     response = model.generate_content(prompt)
-    # Clean response in case AI adds markdown code blocks
     clean_json = response.text.replace("```json", "").replace("```", "").strip()
     return json.loads(clean_json)
 
-# 3. Streamlit UI
-st.title("AI Automation: Resume Screener")
-st.markdown("**AI Resume Screening System**")
+# --- ENGINE 3: MULTIMODAL FALLBACK (FOR GRAPHIC RESUMES) ---
+def ai_multimodal_fallback(jd_text, pdf_bytes):
+    model = genai.GenerativeModel('gemini-2.5-flash')
+    prompt = f"""
+    You are an expert HR Recruiter. The attached PDF is a graphical resume. 
+    Read it natively and analyze it against this Job Description.
+    
+    JD: {jd_text}
+    
+    Return ONLY a JSON object with these exact keys:
+    "Candidate Name": "Extract from resume",
+    "AI Score": (0-100 integer representing contextual fit),
+    "Strengths": ["point 1", "point 2"],
+    "Gaps": ["point 1", "point 2"],
+    "Recommendation": "Strong Fit" or "Moderate Fit" or "Not Fit"
+    """
+    response = model.generate_content([
+        {'mime_type': 'application/pdf', 'data': pdf_bytes},
+        prompt
+    ])
+    clean_json = response.text.replace("```json", "").replace("```", "").strip()
+    return json.loads(clean_json)
+
+# --- PDF EXTRACTION ---
+def extract_text(file_bytes):
+    text = ""
+    try:
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+        for page in doc:
+            text += page.get_text() + "\n"
+    except Exception as e:
+        pass
+    return text
+
+# --- UI DASHBOARD ---
+st.title("Hybrid Resume Screener: ATS + AI")
+st.markdown("**Combines traditional Keyword Parsing with Gemini Contextual Analysis. Features Multimodal Fallback for complex PDFs.**")
 
 col1, col2 = st.columns([1, 1])
-
 with col1:
-    st.subheader("Step 1: Paste Job Description")
-    jd_input = st.text_area("Enter the JD here...", height=250)
-
+    jd_input = st.text_area("Step 1: Paste Job Description", height=200)
 with col2:
-    st.subheader("Step 2: Upload Resumes")
-    uploaded_files = st.file_uploader("Upload PDF Resumes", type="pdf", accept_multiple_files=True)
+    uploaded_files = st.file_uploader("Step 2: Upload Resumes", type="pdf", accept_multiple_files=True)
 
-if st.button("Analyze & Rank Candidates"):
-    if not jd_input or not uploaded_files:
-        st.error("Please provide both a JD and at least one resume.")
-    else:
+if st.button("Run Hybrid Analysis"):
+    if jd_input and uploaded_files:
         results = []
-        with st.spinner("AI is analyzing resumes..."):
+        with st.spinner("Running Dual-Engine Analysis..."):
             for file in uploaded_files:
-                resume_text = extract_text_from_pdf(file)
                 try:
-                    analysis = analyze_resume(jd_input, resume_text)
-                    results.append(analysis)
+                    file.seek(0)
+                    raw_bytes = file.read()
+
+                    extracted_text = extract_text(raw_bytes)
+                
+                    # FALLBACK LOGIC
+                    if len(extracted_text.strip()) < 50:
+                        st.toast(f"Graphic Resume detected for {file.name}. Routing to Multimodal AI...", icon="⚠️")
+                        
+                        ai_data = ai_multimodal_fallback(jd_input, raw_bytes)
+                        ai_data["ATS Keyword Score"] = "N/A (Graphic)"
+                        ai_data["Matched Keywords"] = "N/A"
+                        ai_data["Missing Keywords"] = "N/A"
+                        results.append(ai_data)
+                    else:
+                        ats_score, matched, missing = traditional_ats_match(jd_input, extracted_text)
+                        ai_data = ai_contextual_analysis(jd_input, extracted_text)
+                        
+                        ai_data["ATS Keyword Score"] = f"{ats_score}%"
+                        ai_data["Matched Keywords"] = ", ".join(matched) if matched else "None"
+                        ai_data["Missing Keywords"] = ", ".join(missing) if missing else "None"
+                        results.append(ai_data)
                 except Exception as e:
-                    st.error(f"Error processing {file.name}: {e}")
+                    st.error(f"Processing Error on {file.name}: {e}")
         
-        # 4. Display Results
         if results:
             df = pd.DataFrame(results)
-            # Sort by Score descending
-            df = df.sort_values(by="Score", ascending=False)
+            cols = ["Candidate Name", "ATS Keyword Score", "AI Score", "Recommendation", "Matched Keywords", "Missing Keywords", "Strengths", "Gaps"]
+            for col in cols:
+                if col not in df.columns:
+                    df[col] = "N/A"
+            df = df[cols].sort_values(by="AI Score", ascending=False)
             
-            st.subheader("📊 Candidate Ranking Leaderboard")
-            st.table(df)
-            
-            # Option to download as CSV
-            csv = df.to_csv(index=False).encode('utf-8')
-            st.download_button("Download Report as CSV", data=csv, file_name="hiring_report.csv")
+            st.subheader("📊 Dual-Engine Leaderboard")
+            st.dataframe(df, use_container_width=True)
