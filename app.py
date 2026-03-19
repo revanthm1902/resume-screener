@@ -1,6 +1,6 @@
 import streamlit as st
 import google.generativeai as genai
-import pdfplumber
+import fitz
 import pandas as pd
 import json
 import os
@@ -14,14 +14,21 @@ st.set_page_config(page_title="Nutrabay AI Resume Screener", layout="wide")
 
 # 2. Helper Functions
 def extract_text_from_pdf(file):
-    with pdfplumber.open(file) as pdf:
-        text = ""
-        for page in pdf.pages:
-            text += page.extract_text() or ""
+    text = ""
+    try:
+        file.seek(0)
+        # Read the file as a byte stream
+        pdf_bytes = file.read()
+        # Open the PDF with PyMuPDF
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        for page in doc:
+            text += page.get_text() + "\n"
+    except Exception as e:
+        st.error(f"Error reading PDF {file.name}: {e}")
     return text
 
 def analyze_resume(jd_text, resume_text):
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-2.5-flash')
     
     prompt = f"""
     You are an expert HR Recruitment Tool. 
@@ -44,8 +51,8 @@ def analyze_resume(jd_text, resume_text):
     return json.loads(clean_json)
 
 # 3. Streamlit UI
-st.title("Nutrabay AI Automation: Resume Screener")
-st.markdown("Select a Problem Statement: **#1 AI Resume Screening System**")
+st.title("AI Automation: Resume Screener")
+st.markdown("**AI Resume Screening System**")
 
 col1, col2 = st.columns([1, 1])
 
