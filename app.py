@@ -5,6 +5,7 @@ import pandas as pd
 import json
 import re
 import os
+import io
 from dotenv import load_dotenv
 
 # --- CONFIGURATION ---
@@ -132,7 +133,19 @@ if st.button("Run Hybrid Analysis"):
             for col in cols:
                 if col not in df.columns:
                     df[col] = "N/A"
-            df = df[cols].sort_values(by="AI Score", ascending=False)
+            df = df[cols].sort_values(by="AI Score", ascending=False).reset_index(drop=True)
+            df.index = df.index + 1
+            df.index.name = "Candidate Ranking"
             
             st.subheader("📊 Dual-Engine Leaderboard")
             st.dataframe(df, use_container_width=True)
+            
+            # Download to Excel
+            buffer = io.BytesIO()
+            df.to_excel(buffer, sheet_name='Leaderboard')
+            st.download_button(
+                label="📥 Download Excel Leaderboard",
+                data=buffer.getvalue(),
+                file_name="Candidate_Leaderboard.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
