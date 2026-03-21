@@ -137,8 +137,22 @@ if st.button("Run Hybrid Analysis"):
             df.index = df.index + 1
             df.index.name = "Candidate Ranking"
             
-            st.subheader("📊 Dual-Engine Leaderboard")
-            st.dataframe(df, use_container_width=True)
+            st.markdown("---")
+            st.subheader("🏆 Dual-Engine Leaderboard Overview")
+
+            st.dataframe(
+                df,
+                column_config={
+                    "AI Score": st.column_config.ProgressColumn(
+                        "AI Score",
+                        help="Gemini's contextual fit score",
+                        format="%d",
+                        min_value=0,
+                        max_value=100,
+                    ),
+                },
+                use_container_width=True
+            )
             
             # Download to Excel
             buffer = io.BytesIO()
@@ -147,5 +161,42 @@ if st.button("Run Hybrid Analysis"):
                 label="📥 Download Excel Leaderboard",
                 data=buffer.getvalue(),
                 file_name="Candidate_Leaderboard.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
             )
+            
+            st.markdown("---")
+            st.subheader("📋 Detailed Candidate Profiles")
+            
+            for idx, row in df.iterrows():
+                # Set icon based on recommendation
+                fit_icon = "🟢" if "Strong" in str(row['Recommendation']) else "🟡" if "Moderate" in str(row['Recommendation']) else "🔴"
+                
+                with st.expander(f"Rank #{idx} | {fit_icon} {row['Candidate Name']} | AI Score: {row['AI Score']}/100"):
+                    col_a, col_b = st.columns(2)
+                    
+                    with col_a:
+                        st.markdown("#### ✅ Strengths")
+                        if isinstance(row['Strengths'], list):
+                            for s in row['Strengths']: st.markdown(f"- {s}")
+                        else:
+                            st.write(row['Strengths'])
+                            
+                        st.markdown("#### 🎯 Matched Keywords")
+                        if row['Matched Keywords'] and row['Matched Keywords'] != "None" and row['Matched Keywords'] != "N/A":
+                            st.success(row['Matched Keywords'])
+                        else:
+                            st.info("None or N/A")
+                            
+                    with col_b:
+                        st.markdown("#### ⚠️ Potential Gaps")
+                        if isinstance(row['Gaps'], list):
+                            for g in row['Gaps']: st.markdown(f"- {g}")
+                        else:
+                            st.write(row['Gaps'])
+                            
+                        st.markdown("#### 🔍 Missing Keywords")
+                        if row['Missing Keywords'] and row['Missing Keywords'] != "None" and row['Missing Keywords'] != "N/A":
+                            st.warning(row['Missing Keywords'])
+                        else:
+                            st.info("None or N/A")
