@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-st.set_page_config(page_title="Nutrabay Hybrid ATS System", layout="wide")
+st.set_page_config(page_title="Hybrid ATS System", layout="wide")
 
 # --- ENGINE 1: TRADITIONAL ATS (DETERMINISTIC) ---
 def traditional_ats_match(jd_text, resume_text):
