@@ -53,21 +53,6 @@ EXPERIENCE:
 - Created secure RESTful APIs using Node.js and Express for a local delivery startup.
 - Managed a MongoDB database scaling to 10,000 active users.""",
 
-    "Resume_4_Priya_Senior.pdf": """PRIYA PATEL
-Principal Software Architect
-Email: priya@example.com
-
-SUMMARY:
-Principal Software Architect with 12 years of experience building enterprise-grade systems.
-
-SKILLS:
-React, Node.js, Kubernetes, Docker, Microservices, C#, Azure, AWS.
-
-EXPERIENCE:
-1. Cloud Migration Lead
-- Led a team of 40 engineers to migrate a legacy banking system to AWS.
-- Designed distributed system architecture for a Fortune 500 company.""",
-
     "Resume_5_Rohan_Marketing.pdf": """ROHAN GUPTA
 Digital Marketing Specialist
 Email: rohan@example.com
@@ -83,7 +68,7 @@ EXPERIENCE:
 - Increased organic website traffic by 40% through rigorous SEO optimization.
 - Managed a $50k/month ad budget on Google and Meta platforms resulting in high ROI.""",
 
-    "Resume_6_Ananya_DataScience.pdf": """ANANYA DESAI
+    "Resume_5_Ananya_DataScience.pdf": """ANANYA DESAI
 Data Scientist
 Email: ananya@example.com
 
@@ -97,36 +82,6 @@ EXPERIENCE:
 1. Customer Segmentation Model
 - Developed a clustering model to segment customers, improving targeted marketing by 25%.
 - Built ETL pipelines to ingest and transform big data from multiple sources.""",
-
-    "Resume_7_Kunal_UIUX.pdf": """KUNAL VERMA
-UI/UX Designer
-Email: kunal@example.com
-
-SUMMARY:
-Creative UI/UX Designer dedicated to crafting intuitive digital experiences.
-
-SKILLS:
-Figma, Adobe XD, Sketch, Wireframing, Prototyping, User Research.
-
-EXPERIENCE:
-1. Mobile App Redesign
-- Led the complete redesign of a fintech mobile application, improving user engagement by 35%.
-- Conducted comprehensive A/B testing and user research to optimize flow.""",
-
-    "Resume_8_Sneha_PM.pdf": """SNEHA IYER
-Product Manager
-Email: sneha@example.com
-
-SUMMARY:
-Strategic Product Manager with 5 years of experience leading cross-functional teams to deliver software products.
-
-SKILLS:
-Agile, Scrum, Jira, Roadmap Planning, Data Analysis, Stakeholder Management.
-
-EXPERIENCE:
-1. SaaS Platform Launch
-- Managed the end-to-end lifecycle of a B2B SaaS platform from ideation to launch.
-- Collaborated with engineering, design, and marketing to achieve a 15% increase in MRR."""
 }
 
 # Generate the PDFs
