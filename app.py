@@ -83,7 +83,7 @@ def extract_text(file_bytes):
 
 # --- DASHBOARD ---
 st.title("Hybrid Resume Screener: ATS + AI")
-st.markdown("**Combines traditional Keyword Parsing with Gemini Contextual Analysis. Features Multimodal Fallback for complex PDFs.**")
+st.markdown("**Combines traditional Keyword Parsing with AI Contextual Analysis. Features Multimodal Fallback for complex PDFs.**")
 
 col1, col2 = st.columns([1, 1])
 with col1:
@@ -135,7 +135,7 @@ if st.button("Run Hybrid Analysis"):
                 column_config={
                     "AI Score": st.column_config.ProgressColumn(
                         "AI Score",
-                        help="Gemini's contextual fit score",
+                        help="AI's contextual fit score",
                         format="%d",
                         min_value=0,
                         max_value=100,
