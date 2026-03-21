@@ -18,16 +18,13 @@ st.set_page_config(page_title="Nutrabay Hybrid ATS System", layout="wide")
 def traditional_ats_match(jd_text, resume_text):
     jd_words = set(re.findall(r'\b[a-zA-Z0-9.-]+\b', jd_text.lower()))
     resume_words = set(re.findall(r'\b[a-zA-Z0-9.-]+\b', resume_text.lower()))
-    
     skill_bank = {'react', 'node', 'express', 'mongodb', 'python', 'sql', 'seo', 'marketing', 'java', 'next.js', 'vercel', 'aws', 'api'}
-    
     jd_skills = jd_words.intersection(skill_bank)
     if not jd_skills:
         return 0, [], []
         
     matched_skills = jd_skills.intersection(resume_words)
     missing_skills = jd_skills - resume_words
-    
     score = int((len(matched_skills) / len(jd_skills)) * 100)
     return score, list(matched_skills), list(missing_skills)
 
@@ -40,7 +37,6 @@ def ai_contextual_analysis(jd_text, resume_text):
     
     JD: {jd_text}
     Resume: {resume_text}
-    
     Return ONLY a JSON object with these exact keys:
     "Candidate Name": "Extract from resume",
     "AI Score": (0-100 integer representing contextual fit),
@@ -58,9 +54,8 @@ def ai_multimodal_fallback(jd_text, pdf_bytes):
     prompt = f"""
     You are an expert HR Recruiter. The attached PDF is a graphical resume. 
     Read it natively and analyze it against this Job Description.
-    
+
     JD: {jd_text}
-    
     Return ONLY a JSON object with these exact keys:
     "Candidate Name": "Extract from resume",
     "AI Score": (0-100 integer representing contextual fit),
@@ -86,7 +81,7 @@ def extract_text(file_bytes):
         pass
     return text
 
-# --- UI DASHBOARD ---
+# --- DASHBOARD ---
 st.title("Hybrid Resume Screener: ATS + AI")
 st.markdown("**Combines traditional Keyword Parsing with Gemini Contextual Analysis. Features Multimodal Fallback for complex PDFs.**")
 
@@ -104,13 +99,11 @@ if st.button("Run Hybrid Analysis"):
                 try:
                     file.seek(0)
                     raw_bytes = file.read()
-
                     extracted_text = extract_text(raw_bytes)
                 
                     # FALLBACK LOGIC
                     if len(extracted_text.strip()) < 50:
                         st.toast(f"Graphic Resume detected for {file.name}. Routing to Multimodal AI...", icon="⚠️")
-                        
                         ai_data = ai_multimodal_fallback(jd_input, raw_bytes)
                         ai_data["ATS Keyword Score"] = "N/A (Graphic)"
                         ai_data["Matched Keywords"] = "N/A"
@@ -119,7 +112,6 @@ if st.button("Run Hybrid Analysis"):
                     else:
                         ats_score, matched, missing = traditional_ats_match(jd_input, extracted_text)
                         ai_data = ai_contextual_analysis(jd_input, extracted_text)
-                        
                         ai_data["ATS Keyword Score"] = f"{ats_score}%"
                         ai_data["Matched Keywords"] = ", ".join(matched) if matched else "None"
                         ai_data["Missing Keywords"] = ", ".join(missing) if missing else "None"
@@ -136,10 +128,8 @@ if st.button("Run Hybrid Analysis"):
             df = df[cols].sort_values(by="AI Score", ascending=False).reset_index(drop=True)
             df.index = df.index + 1
             df.index.name = "Candidate Ranking"
-            
             st.markdown("---")
             st.subheader("🏆 Dual-Engine Leaderboard Overview")
-
             st.dataframe(
                 df,
                 column_config={
@@ -153,7 +143,6 @@ if st.button("Run Hybrid Analysis"):
                 },
                 use_container_width=True
             )
-            
             # Download to Excel
             buffer = io.BytesIO()
             df.to_excel(buffer, sheet_name='Leaderboard')
@@ -164,24 +153,19 @@ if st.button("Run Hybrid Analysis"):
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True
             )
-            
             st.markdown("---")
             st.subheader("📋 Detailed Candidate Profiles")
             
             for idx, row in df.iterrows():
-                # Set icon based on recommendation
                 fit_icon = "🟢" if "Strong" in str(row['Recommendation']) else "🟡" if "Moderate" in str(row['Recommendation']) else "🔴"
-                
                 with st.expander(f"Rank #{idx} | {fit_icon} {row['Candidate Name']} | AI Score: {row['AI Score']}/100"):
                     col_a, col_b = st.columns(2)
-                    
                     with col_a:
                         st.markdown("#### ✅ Strengths")
                         if isinstance(row['Strengths'], list):
                             for s in row['Strengths']: st.markdown(f"- {s}")
                         else:
                             st.write(row['Strengths'])
-                            
                         st.markdown("#### 🎯 Matched Keywords")
                         if row['Matched Keywords'] and row['Matched Keywords'] != "None" and row['Matched Keywords'] != "N/A":
                             st.success(row['Matched Keywords'])
